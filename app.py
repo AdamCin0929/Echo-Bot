@@ -705,13 +705,13 @@ def handle_message(event):
         line_bot_api = MessagingApi(api_client)
 
         # 點餐開始：初始化回覆列表與狀態
-        if text == '點早餐':
+        if text == '早餐':
             group_replies[group_id] = []
             group_active[group_id] = True
             line_bot_api.reply_message(
                 ReplyMessageRequest(
                     reply_token=event.reply_token,
-                    messages=[TextMessage(text='請開始回覆你想吃的早餐')]
+                    messages=[TextMessage(text='請開始點餐')]
                 )
             )
             return
@@ -721,7 +721,7 @@ def handle_message(event):
             if group_id not in group_replies or not group_replies[group_id]:
                 summary_text = '目前尚無任何回覆。'
             else:
-                summary_text = '點餐結束！以下是大家的回覆：\n' + '\n'.join(group_replies[group_id])
+                summary_text = '點餐結束！以下是這次的餐點：\n' + '\n'.join(group_replies[group_id])
 
             # 清除資料並關閉狀態
             group_replies[group_id] = []
@@ -748,8 +748,7 @@ def handle_message(event):
             ReplyMessageRequest(
                 reply_token=event.reply_token,
                 messages=[
-                    TextMessage(text=f'已收到你的回覆：{text}'),
-                    TextMessage(text=f'目前大家的回覆如下：\n{current_summary}')
+                    TextMessage(text=f'目前點餐紀錄如下：\n{current_summary}')
                 ]
             )
         )
