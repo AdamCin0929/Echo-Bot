@@ -705,7 +705,7 @@ def handle_message(event):
         line_bot_api = MessagingApi(api_client)
 
         # 點餐開始：初始化回覆列表與狀態
-        if any(keyword in text for keyword in ["早餐", "午餐", "晚餐"]):
+        if text == '早餐':
             group_replies[group_id] = []
             group_active[group_id] = True
             line_bot_api.reply_message(
