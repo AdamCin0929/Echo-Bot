@@ -115,7 +115,7 @@ def handle_follow(event):
 def handle_join(event):
     with ApiClient(configuration) as api_client:
         line_bot_api = MessagingApi(api_client)
-        welcome_msg = TextMessage(text="很高興加入大家！請輸入指令開始使用。")
+        welcome_msg = TextMessage(text="很高興加入大家！我是精靈Genie，目前只有點餐功能。\n✅ 如何開始點餐\n只要在群組中輸入以下任一關鍵字：\n「早餐」、「午餐」、「晚餐」\n我就會啟動點餐流程，並回覆「請開始點餐」。\n📝 點餐過程\n在點餐狀態中，各位輸入的每一則訊息都會被記錄為餐點內容，我會即時回覆目前的點餐紀錄。\n🛑 結束點餐\n只要輸入：「結束點餐」，我將會統整所有餐點並回覆完整清單，然後結束點餐流程。")
         line_bot_api.reply_message_with_http_info(
             ReplyMessageRequest(
                 reply_token=event.reply_token,
