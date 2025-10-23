@@ -65,7 +65,8 @@ from linebot.v3.webhooks import (
     MessageEvent,
     FollowEvent,
     PostbackEvent,
-    TextMessageContent
+    TextMessageContent,
+    JoinEvent
 )
 
 import requests
@@ -108,6 +109,15 @@ def handle_follow(event):
                 messages=[welcome_msg]
             )
         )
+
+
+@line_handler.add(JoinEvent)
+def handle_join(event):
+    line_bot_api.reply_message(
+        event.reply_token,
+        TextSendMessage(text="大家好，我是點餐機器人！輸入『早餐』『午餐』『晚餐』即可開始點餐流程 🍽️")
+    )
+
 
 # # 訊息事件(輸入postback, linebot回覆按鈕)
 # @handler.add(MessageEvent, message=TextMessageContent)
@@ -719,7 +729,7 @@ def handle_message(event):
         # 結束點餐：回覆所有收集到的訊息並關閉狀態
         if text == '結束點餐':
             if group_id not in group_replies or not group_replies[group_id]:
-                summary_text = '目前尚無任何回覆。'
+                summary_text = '點餐結束！此次無任何餐點紀錄。'
             else:
                 summary_text = '點餐結束！以下是這次的餐點：\n' + '\n'.join(group_replies[group_id])
 
