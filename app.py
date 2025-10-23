@@ -113,10 +113,15 @@ def handle_follow(event):
 
 @line_handler.add(JoinEvent)
 def handle_join(event):
-    line_bot_api.reply_message(
-        event.reply_token,
-        TextSendMessage(text="大家好，我是點餐機器人！輸入『早餐』『午餐』『晚餐』即可開始點餐流程 🍽️")
-    )
+    with ApiClient(configuration) as api_client:
+        line_bot_api = MessagingApi(api_client)
+        welcome_msg = TextMessage(text="很高興加入大家！請輸入指令開始使用。")
+        line_bot_api.reply_message_with_http_info(
+            ReplyMessageRequest(
+                reply_token=event.reply_token,
+                messages=[welcome_msg]
+            )
+        )
 
 
 # # 訊息事件(輸入postback, linebot回覆按鈕)
