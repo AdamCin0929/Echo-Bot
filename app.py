@@ -801,7 +801,6 @@ def handle_message(event):
                     messages=[TextMessage(text='此內容未被記錄，請輸入餐點名稱')]
                 )
             )
-``
 
 
 #訊息回覆(image map)
