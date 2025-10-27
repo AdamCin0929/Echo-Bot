@@ -72,6 +72,8 @@ from linebot.v3.webhooks import (
 import requests
 import json
 import os
+import threading
+import re
 
 app = Flask(__name__)
 
@@ -711,6 +713,29 @@ def handle_join(event):
 group_replies = {}
 group_active = {}
 
+def is_valid_meal(text):
+    # 排除 URL 或非餐點內容
+    if re.search(r'https?://|\.com|\.tw|\.net|\.org', text):
+        return False
+    return True
+
+def auto_end_order(group_id, line_bot_api):
+    if group_active.get(group_id, False):
+        if group_id not in group_replies or not group_replies[group_id]:
+            summary_text = '點餐結束。此次無任何餐點紀錄。'
+        else:
+            summary_text = '點餐結束！以下是這次的餐點：\n' + '\n'.join(group_replies[group_id])
+
+        group_replies[group_id] = []
+        group_active[group_id] = False
+
+        line_bot_api.push_message(
+            PushMessageRequest(
+                to=group_id,
+                messages=[TextMessage(text=summary_text)]
+            )
+        )
+
 @line_handler.add(MessageEvent, message=TextMessageContent)
 def handle_message(event):
     text = event.message.text.strip()
@@ -719,26 +744,27 @@ def handle_message(event):
     with ApiClient(configuration) as api_client:
         line_bot_api = MessagingApi(api_client)
 
-        # 點餐開始：初始化回覆列表與狀態
         if any(keyword in text for keyword in ['早餐', '午餐', '晚餐']):
             group_replies[group_id] = []
             group_active[group_id] = True
+
+            timer = threading.Timer(1800, auto_end_order, args=(group_id, line_bot_api))
+            timer.start()
+
             line_bot_api.reply_message(
                 ReplyMessageRequest(
                     reply_token=event.reply_token,
-                    messages=[TextMessage(text='請開始點餐')]
+                    messages=[TextMessage(text='請開始點餐（30分鐘後自動結束）')]
                 )
             )
             return
 
-        # 結束點餐：回覆所有收集到的訊息並關閉狀態
         if text == '結束點餐':
             if group_id not in group_replies or not group_replies[group_id]:
                 summary_text = '點餐結束！此次無任何餐點紀錄。'
             else:
                 summary_text = '點餐結束！以下是這次的餐點：\n' + '\n'.join(group_replies[group_id])
 
-            # 清除資料並關閉狀態
             group_replies[group_id] = []
             group_active[group_id] = False
 
@@ -750,24 +776,32 @@ def handle_message(event):
             )
             return
 
-        # 若群組未啟動點餐，不做任何回覆
         if not group_active.get(group_id, False):
             return
-        # 收集回覆訊息（非指令）
-        group_replies[group_id].append(text)
 
-        # 組合目前所有回覆
-        current_summary = '\n'.join(group_replies[group_id])
+        # 檢查是否為有效餐點內容
+        if is_valid_meal(text):
+            group_replies[group_id].append(text)
 
-        line_bot_api.reply_message(
-            ReplyMessageRequest(
-                reply_token=event.reply_token,
-                messages=[
-                    TextMessage(text=f'目前點餐紀錄如下：\n{current_summary}')
-                ]
+            current_summary = '\n'.join(group_replies[group_id])
+
+            line_bot_api.reply_message(
+                ReplyMessageRequest(
+                    reply_token=event.reply_token,
+                    messages=[
+                        TextMessage(text=f'目前點餐紀錄如下：\n{current_summary}')
+                    ]
+                )
             )
-        )
-
+        else:
+            # 忽略非餐點內容，但可選擇回覆提示
+            line_bot_api.reply_message(
+                ReplyMessageRequest(
+                    reply_token=event.reply_token,
+                    messages=[TextMessage(text='此內容未被記錄，請輸入餐點名稱')]
+                )
+            )
+``
 
 
 #訊息回覆(image map)
