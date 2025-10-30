@@ -69,6 +69,9 @@ from linebot.v3.webhooks import (
     JoinEvent
 )
 
+from google.oauth2 import service_account
+from googleapiclient.discovery import build
+
 import requests
 import json
 import os
@@ -122,6 +125,16 @@ def handle_join(event):
                 messages=[welcome_msg]
             )
         )
+
+
+# Google Sheets 設定
+SERVICE_ACCOUNT_FILE = 'path/to/your/service_account.json'  # ← 修改為你的 JSON 路徑
+SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
+SPREADSHEET_ID = '1SI-w08r6nHoTndKPvP2aWSl3J7CnZJzUPEu3MHTOrFM'  # ← 修改為你的試算表 ID
+RANGE_NAME = '工作表1!A1'  # ← 修改為你的工作表名稱與範圍
+credentials = service_account.Credentials.from_service_account_file(
+    SERVICE_ACCOUNT_FILE, scopes=SCOPES)
+sheets_service = build('sheets', 'v4', credentials=credentials)
 
 #訊息傳送(點餐)
 # 記錄每個群組的回覆訊息與點餐狀態
