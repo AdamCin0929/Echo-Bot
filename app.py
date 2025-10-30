@@ -72,7 +72,7 @@ from linebot.v3.webhooks import (
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from datetime import datetime
-from pytz import timezone
+from zoneinfo import ZoneInfo
 
 import requests
 import json
@@ -252,8 +252,7 @@ def handle_message(event):
 
         # 餐點處理流程
         if is_valid_meal(text):            
-            tz = timezone('Asia/Taipei')
-            timestamp = datetime.now(tz).strftime('%Y-%m-%d %H:%M:%S')
+            timestamp = datetime.now(ZoneInfo("Asia/Taipei")).strftime('%Y-%m-%d %H:%M:%S')
 
             try:
                 append_to_sheet([group_id, text, timestamp])
