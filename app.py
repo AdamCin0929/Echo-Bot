@@ -78,6 +78,7 @@ import json
 import os
 import threading
 import re
+import base64
 
 app = Flask(__name__)
 
@@ -128,14 +129,19 @@ def handle_join(event):
         )
 
 
-# Google Sheets 設定
-SERVICE_ACCOUNT_FILE = 'line-bot-476702-7c1e89ad4af8.json'  # ← 修改為你的 JSON 路徑
-SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
-SPREADSHEET_ID = '1SI-w08r6nHoTndKPvP2aWSl3J7CnZJzUPEu3MHTOrFM'  # ← 修改為你的試算表 ID
-RANGE_NAME = '工作表1!A1'  # ← 修改為你的工作表名稱與範圍
 
-credentials = service_account.Credentials.from_service_account_file(
-    SERVICE_ACCOUNT_FILE, scopes=SCOPES)
+# Google Sheets 設定
+SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
+SPREADSHEET_ID = '1SI-w08r6nHoTndKPvP2aWSl3J7CnZJzUPEu3MHTOrFM'  # ← 你的試算表 ID
+RANGE_NAME = '工作表1!A1'  # ← 工作表名稱與範圍
+# 從 Vercel 環境變數讀取並解碼 Base64 的 JSON 憑證
+json_str = base64.b64decode(os.getenv('GOOGLE_CREDENTIALS_BASE64')).decode('utf-8')
+json_data = json.loads(json_str)
+
+# 建立憑證物件
+credentials = service_account.Credentials.from_service_account_info(json_data, scopes=SCOPES)
+
+# 建立 Google Sheets API 服務
 sheets_service = build('sheets', 'v4', credentials=credentials)
 
 #訊息傳送(點餐)
