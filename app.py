@@ -184,6 +184,7 @@ def auto_end_order(group_id, line_bot_api):
             )
         )
 
+
 @line_handler.add(MessageEvent, message=TextMessageContent)
 def handle_message(event):
     text = event.message.text.strip()
@@ -208,46 +209,45 @@ def handle_message(event):
             return
 
         # 結束點餐
-                
-    if text == '結束點餐':
-        group_active[group_id] = False
+        if text == '結束點餐':
+            group_active[group_id] = False
 
-        try:
-            result = sheets_service.spreadsheets().values().get(
-                spreadsheetId=SPREADSHEET_ID,
-                range='工作表1!A:C'
-            ).execute()
+            try:
+                result = sheets_service.spreadsheets().values().get(
+                    spreadsheetId=SPREADSHEET_ID,
+                    range='工作表1!A:C'
+                ).execute()
 
-            rows = result.get('values', [])[1:]  # 跳過標題列
-            app.logger.info(f"讀取試算表資料：{rows}")
+                rows = result.get('values', [])[1:]  # 跳過標題列
+                app.logger.info(f"讀取試算表資料：{rows}")
 
-            group_meals = [row[1] for row in rows if len(row) >= 2 and str(row[0]).strip() == str(group_id).strip()]
+                group_meals = [row[1] for row in rows if len(row) >= 2 and str(row[0]).strip() == str(group_id).strip()]
 
-            if not group_meals:
-                summary_text = '點餐結束！此次無任何餐點紀錄。'
-            else:
-                summary_text = '點餐結束！以下是這次的餐點：\n' + '\n'.join(group_meals)
+                if not group_meals:
+                    summary_text = '點餐結束！此次無任何餐點紀錄。'
+                else:
+                    summary_text = '點餐結束！以下是這次的餐點：\n' + '\n'.join(group_meals)
 
-            # 回覆餐點紀錄
-            line_bot_api.reply_message_with_http_info(
-                ReplyMessageRequest(
-                    reply_token=event.reply_token,
-                    messages=[TextMessage(text=summary_text)]
+                # 回覆餐點紀錄
+                line_bot_api.reply_message_with_http_info(
+                    ReplyMessageRequest(
+                        reply_token=event.reply_token,
+                        messages=[TextMessage(text=summary_text)]
+                    )
                 )
-            )
 
-            # 刪除所有資料行（保留標題列）
-            clear_range = f"工作表1!A2:C{len(rows)+1}"
-            sheets_service.spreadsheets().values().clear(
-                spreadsheetId=SPREADSHEET_ID,
-                range=clear_range,
-                body={}
-            ).execute()
-            app.logger.info(f"已清除範圍：{clear_range}")
+                # 清除資料行（保留標題列）
+                clear_range = f"工作表1!A2:C{len(rows)+1}"
+                sheets_service.spreadsheets().values().clear(
+                    spreadsheetId=SPREADSHEET_ID,
+                    range=clear_range,
+                    body={}
+                ).execute()
+                app.logger.info(f"已清除範圍：{clear_range}")
 
-        except Exception as e:
-            app.logger.error(f"結束點餐回覆失敗：{e}")
-        return
+            except Exception as e:
+                app.logger.error(f"結束點餐回覆失敗：{e}")
+            return
 
         # 非點餐狀態下忽略訊息
         if not group_active.get(group_id, False):
@@ -261,28 +261,27 @@ def handle_message(event):
                 append_to_sheet([group_id, text, timestamp])
             except Exception as e:
                 app.logger.error(f"寫入試算表失敗：{e}")
-            
-        try:
-            result = sheets_service.spreadsheets().values().get(
-                spreadsheetId=SPREADSHEET_ID,
-                range=RANGE_NAME
-            ).execute()
 
-            rows = result.get('values', [])
-            app.logger.info(f"讀取試算表資料：{rows}")
+            try:
+                result = sheets_service.spreadsheets().values().get(
+                    spreadsheetId=SPREADSHEET_ID,
+                    range=RANGE_NAME
+                ).execute()
 
-            group_meals = [row[1] for row in rows if len(row) >= 2 and str(row[0]).strip() == str(group_id).strip()]
-            current_summary = '\n'.join(group_meals)
+                rows = result.get('values', [])[1:]  # 跳過標題列
+                app.logger.info(f"讀取試算表資料：{rows}")
 
-            line_bot_api.reply_message_with_http_info(
-                ReplyMessageRequest(
-                    reply_token=event.reply_token,
-                    messages=[TextMessage(text=f'目前點餐紀錄如下：\n{current_summary}')]
+                group_meals = [row[1] for row in rows if len(row) >= 2 and str(row[0]).strip() == str(group_id).strip()]
+                current_summary = '\n'.join(group_meals)
+
+                line_bot_api.reply_message_with_http_info(
+                    ReplyMessageRequest(
+                        reply_token=event.reply_token,
+                        messages=[TextMessage(text=f'目前點餐紀錄如下：\n{current_summary}')]
+                    )
                 )
-            )
-        except Exception as e:
-            app.logger.error(f"回覆訊息失敗：{e}")
-
+            except Exception as e:
+                app.logger.error(f"回覆訊息失敗：{e}")
         else:
             try:
                 line_bot_api.reply_message_with_http_info(
@@ -293,6 +292,7 @@ def handle_message(event):
                 )
             except Exception as e:
                 app.logger.error(f"非餐點內容回覆失敗：{e}")
+
 
 if __name__ == "__main__":
     app.run()
