@@ -223,9 +223,8 @@ def handle_message(event):
         # 檢查是否為有效餐點內容
         if is_valid_meal(text):
             group_replies[group_id].append(text)
-            timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-            append_to_sheet([group_id, text, timestamp])
-
+            # timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            # append_to_sheet([group_id, text, timestamp])
             current_summary = '\n'.join(group_replies[group_id])
 
             try:
