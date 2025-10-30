@@ -218,7 +218,7 @@ def handle_message(event):
                 ).execute()
 
                 rows = result.get('values', [])
-                group_meals = [row[1] for row in rows if len(row) >= 2 and str(row[0]) == str(group_id)]
+                group_meals = [row[1] for row in rows if len(row) >= 2 and str(row[0]).strip() == str(group_id).strip()]
 
                 if not group_meals:
                     summary_text = '點餐結束！此次無任何餐點紀錄。'
@@ -248,25 +248,28 @@ def handle_message(event):
                 append_to_sheet([group_id, text, timestamp])
             except Exception as e:
                 app.logger.error(f"寫入試算表失敗：{e}")
+            
+        try:
+            result = sheets_service.spreadsheets().values().get(
+                spreadsheetId=SPREADSHEET_ID,
+                range=RANGE_NAME
+            ).execute()
 
-            try:
-                result = sheets_service.spreadsheets().values().get(
-                    spreadsheetId=SPREADSHEET_ID,
-                    range=RANGE_NAME
-                ).execute()
+            rows = result.get('values', [])
+            app.logger.info(f"讀取試算表資料：{rows}")
 
-                rows = result.get('values', [])
-                group_meals = [row[1] for row in rows if row[0] == group_id]
-                current_summary = '\n'.join(group_meals)
+            group_meals = [row[1] for row in rows if len(row) >= 2 and str(row[0]).strip() == str(group_id).strip()]
+            current_summary = '\n'.join(group_meals)
 
-                line_bot_api.reply_message_with_http_info(
-                    ReplyMessageRequest(
-                        reply_token=event.reply_token,
-                        messages=[TextMessage(text=f'目前點餐紀錄如下：\n{current_summary}')]
-                    )
+            line_bot_api.reply_message_with_http_info(
+                ReplyMessageRequest(
+                    reply_token=event.reply_token,
+                    messages=[TextMessage(text=f'目前點餐紀錄如下：\n{current_summary}')]
                 )
-            except Exception as e:
-                app.logger.error(f"回覆訊息失敗：{e}")
+            )
+        except Exception as e:
+            app.logger.error(f"回覆訊息失敗：{e}")
+
         else:
             try:
                 line_bot_api.reply_message_with_http_info(
