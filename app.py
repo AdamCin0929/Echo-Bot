@@ -128,7 +128,7 @@ def handle_join(event):
 
 
 # Google Sheets 設定
-SERVICE_ACCOUNT_FILE = 'path/to/your/service_account.json'  # ← 修改為你的 JSON 路徑
+SERVICE_ACCOUNT_FILE = 'line-bot-476702-7c1e89ad4af8.json'  # ← 修改為你的 JSON 路徑
 SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
 SPREADSHEET_ID = '1SI-w08r6nHoTndKPvP2aWSl3J7CnZJzUPEu3MHTOrFM'  # ← 修改為你的試算表 ID
 RANGE_NAME = '工作表1!A1'  # ← 修改為你的工作表名稱與範圍
