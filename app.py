@@ -73,6 +73,7 @@ from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from datetime import datetime
 from zoneinfo import ZoneInfo
+from collections import Counter
 
 import requests
 import json
@@ -129,8 +130,6 @@ def handle_join(event):
             )
         )
 
-
-
 # Google Sheets 設定
 SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
 SPREADSHEET_ID = '1SI-w08r6nHoTndKPvP2aWSl3J7CnZJzUPEu3MHTOrFM'  # ← 你的試算表 ID
@@ -185,7 +184,6 @@ def auto_end_order(group_id, line_bot_api):
             )
         )
 
-
 @line_handler.add(MessageEvent, message=TextMessageContent)
 def handle_message(event):
     text = event.message.text.strip()
@@ -223,11 +221,13 @@ def handle_message(event):
                 app.logger.info(f"讀取試算表資料：{rows}")
 
                 group_meals = [row[1] for row in rows if len(row) >= 2 and str(row[0]).strip() == str(group_id).strip()]
-
+                
                 if not group_meals:
                     summary_text = '點餐結束！此次無任何餐點紀錄。'
                 else:
-                    summary_text = '點餐結束！以下是這次的餐點：\n' + '\n'.join(group_meals)
+                    meal_counter = Counter(group_meals)
+                    summary_lines = [f"{meal} {count}份" for meal, count in meal_counter.items()]
+                    summary_text = '點餐結束！以下是這次的餐點：\n' + '\n'.join(summary_lines)
 
                 # 回覆餐點紀錄
                 line_bot_api.reply_message_with_http_info(
@@ -269,7 +269,10 @@ def handle_message(event):
                 app.logger.info(f"讀取試算表資料：{rows}")
 
                 group_meals = [row[1] for row in rows if len(row) >= 2 and str(row[0]).strip() == str(group_id).strip()]
-                current_summary = '\n'.join(group_meals)
+                
+                meal_counter = Counter(group_meals)
+                summary_lines = [f"{meal} {count}份" for meal, count in meal_counter.items()]
+                current_summary = '\n'.join(summary_lines)
 
                 line_bot_api.reply_message_with_http_info(
                     ReplyMessageRequest(
@@ -277,6 +280,7 @@ def handle_message(event):
                         messages=[TextMessage(text=f'目前點餐紀錄如下：\n{current_summary}')]
                     )
                 )
+
             except Exception as e:
                 app.logger.error(f"回覆訊息失敗：{e}")
         else:
