@@ -208,16 +208,19 @@ def handle_message(event):
             return
 
         # 結束點餐
+        
         if text == '結束點餐':
             group_active[group_id] = False
 
             try:
                 result = sheets_service.spreadsheets().values().get(
                     spreadsheetId=SPREADSHEET_ID,
-                    range=RANGE_NAME
+                    range='工作表1!A:C'  # ← 確保讀取整張表
                 ).execute()
 
-                rrows = result.get('values', [])[1:]  # 跳過標題列
+                rows = result.get('values', [])[1:]  # 跳過標題列
+                app.logger.info(f"讀取試算表資料：{rows}")
+
                 group_meals = [row[1] for row in rows if len(row) >= 2 and str(row[0]).strip() == str(group_id).strip()]
 
                 if not group_meals:
