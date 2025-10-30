@@ -192,7 +192,7 @@ def handle_message(event):
             timer = threading.Timer(1800, auto_end_order, args=(group_id, line_bot_api))
             timer.start()
 
-            line_bot_api.reply_message(
+            line_bot_api.reply_message_with_http_info(
                 ReplyMessageRequest(
                     reply_token=event.reply_token,
                     messages=[TextMessage(text='請開始點餐（30分鐘後自動結束）')]
@@ -209,7 +209,7 @@ def handle_message(event):
             group_replies[group_id] = []
             group_active[group_id] = False
 
-            line_bot_api.reply_message(
+            line_bot_api.reply_message_with_http_info(
                 ReplyMessageRequest(
                     reply_token=event.reply_token,
                     messages=[TextMessage(text=summary_text)]
@@ -249,7 +249,7 @@ def handle_message(event):
         else:
             try:
                 # 忽略非餐點內容，但可選擇回覆提示
-                line_bot_api.reply_message(
+                line_bot_api.reply_message_with_http_info(
                     ReplyMessageRequest(
                         reply_token=event.reply_token,
                         messages=[TextMessage(text='此內容未被記錄，請輸入餐點名稱')]
