@@ -183,6 +183,7 @@ def auto_end_order(group_id, line_bot_api):
             )
         )
 
+
 @line_handler.add(MessageEvent, message=TextMessageContent)
 def handle_message(event):
     text = event.message.text.strip()
@@ -191,8 +192,8 @@ def handle_message(event):
     with ApiClient(configuration) as api_client:
         line_bot_api = MessagingApi(api_client)
 
+        # 開始點餐
         if any(keyword in text for keyword in ['早餐', '午餐', '晚餐']):
-            group_replies[group_id] = []
             group_active[group_id] = True
 
             timer = threading.Timer(1800, auto_end_order, args=(group_id, line_bot_api))
@@ -206,76 +207,76 @@ def handle_message(event):
             )
             return
 
-        
-if text == '結束點餐':
-    group_active[group_id] = False
-
-    try:
-        result = sheets_service.spreadsheets().values().get(
-            spreadsheetId=SPREADSHEET_ID,
-            range=RANGE_NAME
-        ).execute()
-
-        rows = result.get('values', [])
-        group_meals = [row[1] for row in rows if row[0] == group_id]
-
-        if not group_meals:
-            summary_text = '點餐結束！此次無任何餐點紀錄。'
-        else:
-            summary_text = '點餐結束！以下是這次的餐點：\n' + '\n'.join(group_meals)
-
-        line_bot_api.reply_message_with_http_info(
-            ReplyMessageRequest(
-                reply_token=event.reply_token,
-                messages=[TextMessage(text=summary_text)]
-            )
-        )
-
-    except Exception as e:
-        app.logger.error(f"結束點餐回覆失敗：{e}")
-
-
-        if not group_active.get(group_id, False):
-            return
-
-        # 檢查是否為有效餐點內容
-        if is_valid_meal(text):
-            group_replies[group_id].append(text)
-            timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-            
-        # 嘗試寫入 Google Sheets，但不影響回覆流程
-            try:
-                append_to_sheet([group_id, text, timestamp])
-                
-            except Exception as e:
-                app.logger.error(f"寫入試算表失敗：{e}")
-
-            current_summary = '\n'.join(group_replies[group_id])
+        # 結束點餐
+        if text == '結束點餐':
+            group_active[group_id] = False
 
             try:
+                result = sheets_service.spreadsheets().values().get(
+                    spreadsheetId=SPREADSHEET_ID,
+                    range=RANGE_NAME
+                ).execute()
+
+                rows = result.get('values', [])
+                group_meals = [row[1] for row in rows if row[0] == group_id]
+
+                if not group_meals:
+                    summary_text = '點餐結束！此次無任何餐點紀錄。'
+                else:
+                    summary_text = '點餐結束！以下是這次的餐點：\n' + '\n'.join(group_meals)
+
                 line_bot_api.reply_message_with_http_info(
                     ReplyMessageRequest(
                         reply_token=event.reply_token,
-                        messages=[
-                            TextMessage(text=f'目前點餐紀錄如下：\n{current_summary}')
-                        ]
+                        messages=[TextMessage(text=summary_text)]
                     )
                 )
-                
+
+            except Exception as e:
+                app.logger.error(f"結束點餐回覆失敗：{e}")
+            return
+
+        # 非點餐狀態下忽略訊息
+        if not group_active.get(group_id, False):
+            return
+
+        # 餐點處理流程
+        if is_valid_meal(text):
+            timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
+            try:
+                append_to_sheet([group_id, text, timestamp])
+            except Exception as e:
+                app.logger.error(f"寫入試算表失敗：{e}")
+
+            try:
+                result = sheets_service.spreadsheets().values().get(
+                    spreadsheetId=SPREADSHEET_ID,
+                    range=RANGE_NAME
+                ).execute()
+
+                rows = result.get('values', [])
+                group_meals = [row[1] for row in rows if row[0] == group_id]
+                current_summary = '\n'.join(group_meals)
+
+                line_bot_api.reply_message_with_http_info(
+                    ReplyMessageRequest(
+                        reply_token=event.reply_token,
+                        messages=[TextMessage(text=f'目前點餐紀錄如下：\n{current_summary}')]
+                    )
+                )
             except Exception as e:
                 app.logger.error(f"回覆訊息失敗：{e}")
         else:
             try:
-                # 忽略非餐點內容，但可選擇回覆提示
                 line_bot_api.reply_message_with_http_info(
                     ReplyMessageRequest(
                         reply_token=event.reply_token,
                         messages=[TextMessage(text='此內容未被記錄，請輸入餐點名稱')]
                     )
-                )            
+                )
             except Exception as e:
                 app.logger.error(f"非餐點內容回覆失敗：{e}")
-
 
 if __name__ == "__main__":
     app.run()
