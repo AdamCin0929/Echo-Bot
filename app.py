@@ -226,47 +226,44 @@ def handle_message(event):
         if not group_active.get(group_id, False):
             return
 
-        # 檢查是否為有效餐點內容
+        # 檢查是否為有效餐點內容        
         if is_valid_meal(text):
             timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             
-        
-        # 從 Google Sheets 讀取該群組的所有餐點
-        try:
-            result = sheets_service.spreadsheets().values().get(
-                spreadsheetId=SPREADSHEET_ID,
-                range=RANGE_NAME
-            ).execute()
+            try:
+                append_to_sheet([group_id, text, timestamp])
+            except Exception as e:
+                app.logger.error(f"寫入試算表失敗：{e}")
 
-            rows = result.get('values', [])
-            group_meals = [row[1] for row in rows if row[0] == group_id]
+            try:
+                result = sheets_service.spreadsheets().values().get(
+                    spreadsheetId=SPREADSHEET_ID,
+                    range=RANGE_NAME
+                ).execute()
 
-            current_summary = '\n'.join(group_meals)
-           
-            line_bot_api.reply_message_with_http_info(
-                
-                ReplyMessageRequest(
-                    reply_token=event.reply_token,
-                     messages=[
-                        TextMessage(text=f'目前點餐紀錄如下：\n{current_summary}')
-                        ]
+                rows = result.get('values', [])
+                group_meals = [row[1] for row in rows if row[0] == group_id]
+                current_summary = '\n'.join(group_meals)
+
+                line_bot_api.reply_message_with_http_info(
+                    ReplyMessageRequest(
+                        reply_token=event.reply_token,
+                        messages=[TextMessage(text=f'目前點餐紀錄如下：\n{current_summary}')]
                     )
-                )   
-                
-        except Exception as e:
-            app.logger.error(f"回覆訊息失敗：{e}")
+                )
+            except Exception as e:
+                app.logger.error(f"回覆訊息失敗：{e}")
+
         else:
             try:
-                # 忽略非餐點內容，但可選擇回覆提示
                 line_bot_api.reply_message_with_http_info(
                     ReplyMessageRequest(
                         reply_token=event.reply_token,
                         messages=[TextMessage(text='此內容未被記錄，請輸入餐點名稱')]
                     )
-                )            
+                )
             except Exception as e:
                 app.logger.error(f"非餐點內容回覆失敗：{e}")
-
 
 if __name__ == "__main__":
     app.run()
