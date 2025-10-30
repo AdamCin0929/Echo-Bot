@@ -223,8 +223,15 @@ def handle_message(event):
         # 檢查是否為有效餐點內容
         if is_valid_meal(text):
             group_replies[group_id].append(text)
-            # timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-            # append_to_sheet([group_id, text, timestamp])
+            timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            
+        # 嘗試寫入 Google Sheets，但不影響回覆流程
+            try:
+                append_to_sheet([group_id, text, timestamp])
+                
+            except Exception as e:
+                app.logger.error(f"寫入試算表失敗：{e}")
+
             current_summary = '\n'.join(group_replies[group_id])
 
             try:
