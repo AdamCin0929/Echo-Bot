@@ -242,8 +242,6 @@ def handle_message(event):
             group_meals = [row[1] for row in rows if row[0] == group_id]
 
             current_summary = '\n'.join(group_meals)
-
-
            
             line_bot_api.reply_message_with_http_info(
                 
@@ -255,8 +253,8 @@ def handle_message(event):
                     )
                 )   
                 
-            except Exception as e:
-                app.logger.error(f"回覆訊息失敗：{e}")
+        except Exception as e:
+            app.logger.error(f"回覆訊息失敗：{e}")
         else:
             try:
                 # 忽略非餐點內容，但可選擇回覆提示
