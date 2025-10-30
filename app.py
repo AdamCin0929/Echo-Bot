@@ -72,6 +72,7 @@ from linebot.v3.webhooks import (
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from datetime import datetime
+from pytz import timezone
 
 import requests
 import json
@@ -249,13 +250,10 @@ def handle_message(event):
                 app.logger.error(f"結束點餐回覆失敗：{e}")
             return
 
-        # 非點餐狀態下忽略訊息
-        if not group_active.get(group_id, False):
-            return
-
         # 餐點處理流程
-        if is_valid_meal(text):
-            timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        if is_valid_meal(text):            
+            tz = timezone('Asia/Taipei')
+            timestamp = datetime.now(tz).strftime('%Y-%m-%d %H:%M:%S')
 
             try:
                 append_to_sheet([group_id, text, timestamp])
