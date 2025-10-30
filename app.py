@@ -71,6 +71,7 @@ from linebot.v3.webhooks import (
 
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
+from datetime import datetime
 
 import requests
 import json
@@ -132,6 +133,7 @@ SERVICE_ACCOUNT_FILE = 'line-bot-476702-7c1e89ad4af8.json'  # ← 修改為你�
 SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
 SPREADSHEET_ID = '1SI-w08r6nHoTndKPvP2aWSl3J7CnZJzUPEu3MHTOrFM'  # ← 修改為你的試算表 ID
 RANGE_NAME = '工作表1!A1'  # ← 修改為你的工作表名稱與範圍
+
 credentials = service_account.Credentials.from_service_account_file(
     SERVICE_ACCOUNT_FILE, scopes=SCOPES)
 sheets_service = build('sheets', 'v4', credentials=credentials)
@@ -146,6 +148,17 @@ def is_valid_meal(text):
     if re.search(r'https?://|\.com|\.tw|\.net|\.org', text):
         return False
     return True
+    
+def append_to_sheet(values):
+    body = {
+        'values': [values]
+    }
+    sheets_service.spreadsheets().values().append(
+        spreadsheetId=SPREADSHEET_ID,
+        range=RANGE_NAME,
+        valueInputOption='RAW',
+        body=body
+    ).execute()
 
 def auto_end_order(group_id, line_bot_api):
     if group_active.get(group_id, False):
@@ -163,6 +176,20 @@ def auto_end_order(group_id, line_bot_api):
                 messages=[TextMessage(text=summary_text)]
             )
         )
+
+@app.route("/callback", methods=['POST'])
+def callback():
+    signature = request.headers['X-Line-Signature']
+    body = request.get_data(as_text=True)
+    app.logger.info("Request body: " + body)
+
+    try:
+        line_handler.handle(body, signature)
+    except InvalidSignatureError:
+        app.logger.info("Invalid signature. Please check your channel access token/channel secret.")
+        abort(400)
+
+    return 'OK'
 
 @line_handler.add(MessageEvent, message=TextMessageContent)
 def handle_message(event):
@@ -210,6 +237,8 @@ def handle_message(event):
         # 檢查是否為有效餐點內容
         if is_valid_meal(text):
             group_replies[group_id].append(text)
+            timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            append_to_sheet([group_id, text, timestamp])
 
             current_summary = '\n'.join(group_replies[group_id])
 
