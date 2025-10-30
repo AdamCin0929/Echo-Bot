@@ -228,22 +228,30 @@ def handle_message(event):
 
             current_summary = '\n'.join(group_replies[group_id])
 
-            line_bot_api.reply_message(
-                ReplyMessageRequest(
-                    reply_token=event.reply_token,
-                    messages=[
-                        TextMessage(text=f'目前點餐紀錄如下：\n{current_summary}')
-                    ]
+            try:
+                line_bot_api.reply_message_with_http_info(
+                    ReplyMessageRequest(
+                        reply_token=event.reply_token,
+                        messages=[
+                            TextMessage(text=f'目前點餐紀錄如下：\n{current_summary}')
+                        ]
+                    )
                 )
-            )
+                
+            except Exception as e:
+                app.logger.error(f"回覆訊息失敗：{e}")
         else:
-            # 忽略非餐點內容，但可選擇回覆提示
-            line_bot_api.reply_message(
-                ReplyMessageRequest(
-                    reply_token=event.reply_token,
-                    messages=[TextMessage(text='此內容未被記錄，請輸入餐點名稱')]
-                )
-            )
+            try:
+                # 忽略非餐點內容，但可選擇回覆提示
+                line_bot_api.reply_message(
+                    ReplyMessageRequest(
+                        reply_token=event.reply_token,
+                        messages=[TextMessage(text='此內容未被記錄，請輸入餐點名稱')]
+                    )
+                )            
+            except Exception as e:
+                app.logger.error(f"非餐點內容回覆失敗：{e}")
+
 
 if __name__ == "__main__":
     app.run()
