@@ -154,8 +154,9 @@ def is_valid_meal(text):
     if re.search(r'https?://|\.com|\.tw|\.net|\.org', text):
         return False
     return True
-    
+
 def append_to_sheet(values):
+    app.logger.info(f"寫入試算表：{values}")
     body = {
         'values': [values]
     }
@@ -182,7 +183,6 @@ def auto_end_order(group_id, line_bot_api):
                 messages=[TextMessage(text=summary_text)]
             )
         )
-
 
 @line_handler.add(MessageEvent, message=TextMessageContent)
 def handle_message(event):
@@ -218,7 +218,7 @@ def handle_message(event):
                 ).execute()
 
                 rows = result.get('values', [])
-                group_meals = [row[1] for row in rows if row[0] == group_id]
+                group_meals = [row[1] for row in rows if len(row) >= 2 and str(row[0]) == str(group_id)]
 
                 if not group_meals:
                     summary_text = '點餐結束！此次無任何餐點紀錄。'
