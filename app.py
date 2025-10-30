@@ -133,7 +133,7 @@ def handle_join(event):
 # Google Sheets 設定
 SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
 SPREADSHEET_ID = '1SI-w08r6nHoTndKPvP2aWSl3J7CnZJzUPEu3MHTOrFM'  # ← 你的試算表 ID
-RANGE_NAME = '工作表1!A1'  # ← 工作表名稱與範圍
+RANGE_NAME = '工作表1!A:C' # ← 工作表名稱與範圍
 # 從 Vercel 環境變數讀取並解碼 Base64 的 JSON 憑證
 json_str = base64.b64decode(os.getenv('GOOGLE_CREDENTIALS_BASE64')).decode('utf-8')
 json_data = json.loads(json_str)
@@ -217,7 +217,7 @@ def handle_message(event):
                     range=RANGE_NAME
                 ).execute()
 
-                rows = result.get('values', [])
+                rrows = result.get('values', [])[1:]  # 跳過標題列
                 group_meals = [row[1] for row in rows if len(row) >= 2 and str(row[0]).strip() == str(group_id).strip()]
 
                 if not group_meals:
