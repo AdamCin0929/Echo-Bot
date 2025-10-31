@@ -144,7 +144,7 @@ credentials = service_account.Credentials.from_service_account_info(json_data, s
 # 建立 Google Sheets API 服務
 sheets_service = build('sheets', 'v4', credentials=credentials)
 
-#訊息傳送(點餐)
+# 訊息傳送(點餐)
 # 記錄每個群組的回覆訊息與點餐狀態
 group_replies = {}
 group_active = {}
@@ -250,7 +250,7 @@ def handle_message(event):
                 app.logger.error(f"結束點餐回覆失敗：{e}")
             return
 
-        # 餐點處理流程
+        # 餐點處理流程（只會在點餐流程啟動後執行）
         if is_valid_meal(text):            
             timestamp = datetime.now(ZoneInfo("Asia/Taipei")).strftime('%Y-%m-%d %H:%M:%S')
 
@@ -293,7 +293,6 @@ def handle_message(event):
                 )
             except Exception as e:
                 app.logger.error(f"非餐點內容回覆失敗：{e}")
-
 
 if __name__ == "__main__":
     app.run()
