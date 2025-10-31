@@ -283,16 +283,6 @@ def handle_message(event):
 
             except Exception as e:
                 app.logger.error(f"回覆訊息失敗：{e}")
-        else:
-            try:
-                line_bot_api.reply_message_with_http_info(
-                    ReplyMessageRequest(
-                        reply_token=event.reply_token,
-                        messages=[TextMessage(text='此內容未被記錄，請輸入餐點名稱')]
-                    )
-                )
-            except Exception as e:
-                app.logger.error(f"非餐點內容回覆失敗：{e}")
 
 if __name__ == "__main__":
     app.run()
