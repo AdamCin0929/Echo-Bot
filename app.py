@@ -282,6 +282,108 @@ def handle_message(event):
                 )
 
             except Exception as e:
+                app.logger.error(f"回覆訊息失敗：{e}")@line_handler.add(MessageEvent, message=TextMessageContent)
+def handle_message(event):
+    text = event.message.text.strip()
+    group_id = event.source.group_id if event.source.type == 'group' else 'private'
+
+    with ApiClient(configuration) as api_client:
+        line_bot_api = MessagingApi(api_client)
+
+        # 開始點餐
+        if any(keyword in text for keyword in ['早餐', '午餐', '晚餐']):
+            group_active[group_id] = True
+            group_replies[group_id] = []
+
+            timer = threading.Timer(1800, auto_end_order, args=(group_id, line_bot_api))
+            timer.start()
+
+            line_bot_api.reply_message_with_http_info(
+                ReplyMessageRequest(
+                    reply_token=event.reply_token,
+                    messages=[TextMessage(text='請開始點餐（30分鐘後自動結束）')]
+                )
+            )
+            return
+
+        # 若未啟動點餐流程，忽略所有訊息
+        if not group_active.get(group_id, False):
+            return
+
+        # 結束點餐
+        if text == '結束點餐':
+            group_active[group_id] = False
+
+            try:
+                result = sheets_service.spreadsheets().values().get(
+                    spreadsheetId=SPREADSHEET_ID,
+                    range='工作表1!A:C'
+                ).execute()
+
+                rows = result.get('values', [])[1:]  # 跳過標題列
+                app.logger.info(f"讀取試算表資料：{rows}")
+
+                group_meals = [row[1] for row in rows if len(row) >= 2 and str(row[0]).strip() == str(group_id).strip()]
+                
+                if not group_meals:
+                    summary_text = '點餐結束！此次無任何餐點紀錄。'
+                else:
+                    meal_counter = Counter(group_meals)
+                    summary_lines = [f"{meal} {count}份" for meal, count in meal_counter.items()]
+                    summary_text = '點餐結束！以下是這次的餐點：\n' + '\n'.join(summary_lines)
+
+                line_bot_api.reply_message_with_http_info(
+                    ReplyMessageRequest(
+                        reply_token=event.reply_token,
+                        messages=[TextMessage(text=summary_text)]
+                    )
+                )
+
+                # 清除資料行（保留標題列）
+                clear_range = f"工作表1!A2:C{len(rows)+1}"
+                sheets_service.spreadsheets().values().clear(
+                    spreadsheetId=SPREADSHEET_ID,
+                    range=clear_range,
+                    body={}
+                ).execute()
+                app.logger.info(f"已清除範圍：{clear_range}")
+
+            except Exception as e:
+                app.logger.error(f"結束點餐回覆失敗：{e}")
+            return
+
+        # 餐點處理流程（只會在點餐流程啟動後執行）
+        if is_valid_meal(text):
+            timestamp = datetime.now(ZoneInfo("Asia/Taipei")).strftime('%Y-%m-%d %H:%M:%S')
+
+            try:
+                append_to_sheet([group_id, text, timestamp])
+            except Exception as e:
+                app.logger.error(f"寫入試算表失敗：{e}")
+
+            try:
+                result = sheets_service.spreadsheets().values().get(
+                    spreadsheetId=SPREADSHEET_ID,
+                    range=RANGE_NAME
+                ).execute()
+
+                rows = result.get('values', [])[1:]  # 跳過標題列
+                app.logger.info(f"讀取試算表資料：{rows}")
+
+                group_meals = [row[1] for row in rows if len(row) >= 2 and str(row[0]).strip() == str(group_id).strip()]
+                
+                meal_counter = Counter(group_meals)
+                summary_lines = [f"{meal} {count}份" for meal, count in meal_counter.items()]
+                current_summary = '\n'.join(summary_lines)
+
+                line_bot_api.reply_message_with_http_info(
+                    ReplyMessageRequest(
+                        reply_token=event.reply_token,
+                        messages=[TextMessage(text=f'目前點餐紀錄如下：\n{current_summary}')]
+                    )
+                )
+
+            except Exception as e:
                 app.logger.error(f"回覆訊息失敗：{e}")
 
 if __name__ == "__main__":
