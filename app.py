@@ -260,14 +260,18 @@ def handle_message(event):
                 app.logger.error(f"[結束點餐] 回覆或清除失敗：{e}")
             return
         # 餐點處理流程（只會在點餐流程啟動後執行）
+        
         if is_valid_meal(text):
             timestamp = datetime.now(ZoneInfo("Asia/Taipei")).strftime('%Y-%m-%d %H:%M:%S')
 
-            try:
-                append_to_sheet([group_id, text, timestamp])
-                app.logger.info(f"[記錄餐點] {group_id} -> {text} @ {timestamp}")
-            except Exception as e:
-                app.logger.error(f"[記錄餐點] 寫入試算表失敗：{e}")
+            # 分割多行餐點
+            meals = [line.strip() for line in text.split('\n') if line.strip()]
+            for meal in meals:
+                try:
+                    append_to_sheet([group_id, meal, timestamp])
+                    app.logger.info(f"[記錄餐點] {group_id} -> {meal} @ {timestamp}")
+                except Exception as e:
+                    app.logger.error(f"[記錄餐點] 寫入試算表失敗：{e}")
 
             try:
                 result = sheets_service.spreadsheets().values().get(
