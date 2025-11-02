@@ -208,7 +208,6 @@ def handle_message(event):
             )
             return
 
-        # 結束點餐
         if text == '結束點餐':
             group_active[group_id] = False
 
@@ -219,7 +218,7 @@ def handle_message(event):
             ).execute()
 
             rows = result.get('values', [])[1:]  # 跳過標題列
-            app.logger.info(f"讀取試算表資料：{rows}")
+            app.logger.info(f"[結束點餐] 讀取試算表資料：{rows}")
 
             group_meals = [row[1] for row in rows if len(row) >= 2 and str(row[0]).strip() == str(group_id).strip()]
             
@@ -237,6 +236,7 @@ def handle_message(event):
                     messages=[TextMessage(text=summary_text)]
                 )
             )
+            app.logger.info(f"[結束點餐] 已回覆：{summary_text}")
 
             # 清除資料行（保留標題列）
             clear_range = f"工作表1!A2:C{len(rows)+1}"
@@ -245,10 +245,10 @@ def handle_message(event):
                 range=clear_range,
                 body={}
             ).execute()
-            app.logger.info(f"已清除範圍：{clear_range}")
+            app.logger.info(f"[結束點餐] 已清除範圍：{clear_range}")
 
         except Exception as e:
-            app.logger.error(f"結束點餐回覆失敗：{e}")
+            app.logger.error(f"[結束點餐] 回覆或清除失敗：{e}")
         return
 
         # ✅ 若未啟動點餐流程，忽略所有訊息
